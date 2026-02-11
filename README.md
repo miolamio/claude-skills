@@ -4,6 +4,23 @@
 
 Здесь собраны навыки, которые я делаю сам, и те, которыми пользуюсь в работе.
 
+## Установка
+
+Склонируйте репозиторий и скопируйте нужный навык в `.claude/skills/` вашего проекта:
+
+```bash
+git clone git@github.com:miolamio/claude-skills.git
+cp -r claude-skills/en-ru-translator-adv /path/to/your/project/.claude/skills/
+```
+
+Если навык нужен во всех проектах, положите его в личную папку:
+
+```bash
+cp -r claude-skills/en-ru-translator-adv ~/.claude/skills/
+```
+
+Claude Code подхватит навык автоматически — перезапуск не требуется.
+
 ---
 
 ## en-ru-translator-adv
