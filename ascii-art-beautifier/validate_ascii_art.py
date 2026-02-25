@@ -12,6 +12,7 @@ Options:
     --fix       Auto-fix line width issues (pad shorter lines)
     --block N   Only process block number N (1-indexed)
     --verbose   Show detailed analysis per block
+    --quiet     Only print summary line
 """
 
 import re
@@ -20,7 +21,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 
-# Box-drawing character sets
+# Box-drawing character sets (Unicode)
 CORNERS_TL = set("┌╔╓╒")
 CORNERS_TR = set("┐╗╖╕")
 CORNERS_BL = set("└╚╙╘")
@@ -29,6 +30,12 @@ HORIZONTALS = set("─═╌╍┄┅┈┉")
 VERTICALS = set("│║╎╏┆┇┊┋")
 T_JUNCTIONS = set("┬┴├┤┼╦╩╠╣╬╤╧╟╢╪")
 ALL_BOX = CORNERS_TL | CORNERS_TR | CORNERS_BL | CORNERS_BR | HORIZONTALS | VERTICALS | T_JUNCTIONS
+
+# ASCII-style box-drawing character sets (old-style +--+, |, -)
+ASCII_CORNERS = set("+")
+ASCII_HORIZONTALS = set("-=")
+ASCII_VERTICALS = set("|")
+ASCII_BOX = ASCII_CORNERS | ASCII_HORIZONTALS | ASCII_VERTICALS
 
 
 @dataclass
@@ -70,6 +77,14 @@ class Box:
         return f"Box(rows={self.top_row}-{self.bot_row}, cols={self.left_col}-{self.right_col}, {self.width}x{self.height})"
 
 
+def _has_ascii_box_pattern(text: str) -> bool:
+    """Check if text contains ASCII-style box patterns like +--+ or |...|"""
+    plus_count = text.count('+')
+    has_hline = bool(re.search(r'\+[-=]+\+', text))
+    has_vline = bool(re.search(r'^\s*\|', text, re.MULTILINE))
+    return plus_count >= 4 and has_hline and has_vline
+
+
 def extract_code_blocks(content: str) -> list[tuple[int, list[str]]]:
     """Extract code blocks with box-drawing chars from markdown content.
     Returns list of (start_line_0indexed, lines) tuples."""
@@ -87,9 +102,10 @@ def extract_code_blocks(content: str) -> list[tuple[int, list[str]]]:
                 block_start = i + 1
                 block_lines = []
             else:
-                # Check if block has box-drawing chars
-                text = ''.join(block_lines)
-                if any(c in ALL_BOX for c in text):
+                # Check if block has Unicode box-drawing chars OR ASCII box patterns.
+                # Join with newlines so that re.MULTILINE anchors work in _has_ascii_box_pattern.
+                text = '\n'.join(block_lines)
+                if any(c in ALL_BOX for c in text) or _has_ascii_box_pattern(text):
                     blocks.append((block_start, block_lines))
                 in_block = False
         elif in_block:
@@ -157,7 +173,7 @@ def check_vertical_continuity(lines: list[str], block_num: int) -> list[Issue]:
 
             # If neither end is a junction/corner, it might be a problem
             # But this is complex to analyze, so we only warn for large gaps
-            if gap > 3:
+            if gap > 5:
                 issues.append(Issue(
                     block_num, r1, col, "warning",
                     f"Vertical border gap: │ at row {r1} and {r2} (gap of {gap} rows)"
@@ -329,7 +345,7 @@ def fix_line_widths(lines: list[str]) -> list[str]:
 
 
 def validate_file(filepath: str, fix: bool = False, block_num: Optional[int] = None,
-                  verbose: bool = False) -> list[Issue]:
+                  verbose: bool = False, quiet: bool = False) -> list[Issue]:
     """Validate all ASCII art blocks in a markdown file."""
     with open(filepath) as f:
         content = f.read()
@@ -342,9 +358,10 @@ def validate_file(filepath: str, fix: bool = False, block_num: Optional[int] = N
         if block_num is not None and num != block_num:
             continue
 
-        print(f"\n{'='*60}")
-        print(f"Block {num} (line {start_line + 1}, {len(lines)} lines)")
-        print(f"{'='*60}")
+        if not quiet:
+            print(f"\n{'='*60}")
+            print(f"Block {num} (line {start_line + 1}, {len(lines)} lines)")
+            print(f"{'='*60}")
 
         # Run all checks
         issues = []
@@ -356,34 +373,35 @@ def validate_file(filepath: str, fix: bool = False, block_num: Optional[int] = N
 
         # Box analysis
         boxes = detect_boxes(lines)
-        if verbose:
+        if verbose and not quiet:
             print(f"\nDetected {len(boxes)} boxes:")
             for box in boxes:
                 print(f"  {box}")
 
-        # Line width summary
-        widths = [len(l) for l in lines]
-        unique_widths = set(widths)
-        if len(unique_widths) == 1:
-            print(f"Line widths: all {widths[0]} chars ✅")
-        else:
-            print(f"Line widths: {sorted(unique_widths)} ❌")
+        if not quiet:
+            # Line width summary
+            widths = [len(l) for l in lines]
+            unique_widths = set(widths)
+            if len(unique_widths) == 1:
+                print(f"Line widths: all {widths[0]} chars ✅")
+            else:
+                print(f"Line widths: {sorted(unique_widths)} ❌")
 
-        # Report issues
-        errors = [i for i in issues if i.severity == "error"]
-        warnings = [i for i in issues if i.severity == "warning"]
+            # Report issues
+            errors = [i for i in issues if i.severity == "error"]
+            warnings = [i for i in issues if i.severity == "warning"]
 
-        if not issues:
-            print("No issues found ✅")
-        else:
-            if errors:
-                print(f"\n{len(errors)} error(s):")
-                for issue in errors:
-                    print(f"  {issue}")
-            if warnings:
-                print(f"\n{len(warnings)} warning(s):")
-                for issue in warnings:
-                    print(f"  {issue}")
+            if not issues:
+                print("No issues found ✅")
+            else:
+                if errors:
+                    print(f"\n{len(errors)} error(s):")
+                    for issue in errors:
+                        print(f"  {issue}")
+                if warnings:
+                    print(f"\n{len(warnings)} warning(s):")
+                    for issue in warnings:
+                        print(f"  {issue}")
 
         all_issues.extend(issues)
 
@@ -394,14 +412,16 @@ def validate_file(filepath: str, fix: bool = False, block_num: Optional[int] = N
             old_block = '\n'.join(lines)
             new_block = '\n'.join(fixed)
             content = content.replace(old_block, new_block, 1)
-            print(f"\n✅ Fixed line widths (padded to {max(len(l) for l in fixed)})")
+            if not quiet:
+                print(f"\n✅ Fixed line widths (padded to {max(len(l) for l in fixed)})")
 
     if fix:
         with open(filepath, 'w') as f:
             f.write(content)
-        print(f"\n💾 Saved fixes to {filepath}")
+        if not quiet:
+            print(f"\n💾 Saved fixes to {filepath}")
 
-    # Summary
+    # Summary (always printed)
     total_errors = sum(1 for i in all_issues if i.severity == "error")
     total_warnings = sum(1 for i in all_issues if i.severity == "warning")
     print(f"\n{'='*60}")
@@ -420,7 +440,9 @@ if __name__ == "__main__":
     parser.add_argument("--fix", action="store_true", help="Auto-fix line width issues")
     parser.add_argument("--block", type=int, help="Only process block N (1-indexed)")
     parser.add_argument("--verbose", action="store_true", help="Show detailed box analysis")
+    parser.add_argument("--quiet", "-q", action="store_true", help="Only print summary line")
     args = parser.parse_args()
 
-    issues = validate_file(args.file, fix=args.fix, block_num=args.block, verbose=args.verbose)
+    issues = validate_file(args.file, fix=args.fix, block_num=args.block, verbose=args.verbose,
+                           quiet=args.quiet)
     sys.exit(1 if any(i.severity == "error" for i in issues) else 0)

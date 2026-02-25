@@ -13,6 +13,14 @@
 *.swo
 *~
 
+# Python
+__pycache__/
+*.pyc
+
 # Environment
 .env
 .env.*
+
+# Development / testing
+.development/
+.claude/

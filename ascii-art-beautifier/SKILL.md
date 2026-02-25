@@ -7,7 +7,7 @@ description: Beautifies and generates ASCII art diagrams in markdown files. Use 
   new clean ASCII art from text descriptions when asked.
 metadata:
   author: Anthony Vdovitchenko @ Automatica
-  version: 1.0.0
+  version: 1.1.0
   category: editing
 ---
 
@@ -41,8 +41,15 @@ If the user has already made their intent clear (e.g., "fix the ascii art in thi
 2. **Identify** all fenced code blocks that contain box-drawing characters (`┌ ─ ┐ │ └ ┘` or `+--+` style).
 3. **Analyze** each block: map out the grid structure, identify boxes, connections, labels, and annotations.
 4. **Redraw** each block following the Alignment Rules below.
-5. **Edit** the file in-place using the Edit tool — replace ONLY the content inside each code block. Touch nothing else.
-6. **Report** what was changed: number of blocks processed, summary of fixes.
+5. **Write** the corrected blocks back. IMPORTANT: the Edit and Write tools strip trailing spaces, which breaks uniform line width. When a diagram has lines that need trailing spaces (e.g., connection lines shorter than the outer frame), write the file using Python:
+   ```python
+   content = "..."  # full file content
+   with open(filepath, 'w') as f:
+       f.write(content)
+   ```
+   When no trailing spaces are needed (all lines end with a visible character like │ or ┘), the Edit tool works fine.
+6. **Validate** by running `python3 validate_ascii_art.py <file>` (located in this skill's directory). Compare error counts before and after. Target: 0 errors. Warnings about "vertical border gap" between separate boxes are expected and OK.
+7. **Report** what was changed: number of blocks processed, summary of fixes.
 
 ## Generate Mode — Workflow
 
@@ -135,6 +142,43 @@ Annotations like `(пунктир)`, `40px gap`, color codes (`#1A1A1F`) must be
 
 When a diagram has multiple columns of boxes (e.g., left half and right half), the gap between columns must be uniform across all rows.
 
+### Rule 11: Table Alignment
+
+Tables using `├──┼──┤` and `┬┴` junctions must have column separators (`│`) in the exact same column on every row. The header separator (`├──┼──┤`) must match the top border (`┌──┬──┐`) and bottom border (`└──┴──┘`) exactly.
+
+```
+WRONG:
+┌──────────┬────────┬──────┐
+│ Параметр │ Значение│ Тип  │
+├──────────┼────────┼──────┤
+│ Имя сервера │ prod │ str│
+└──────────┴────────┴──────┘
+
+RIGHT:
+┌──────────┬──────────┬──────┐
+│ Параметр │ Значение │ Тип  │
+├──────────┼──────────┼──────┤
+│ Имя      │ prod     │ str  │
+└──────────┴──────────┴──────┘
+```
+
+## Validator
+
+This skill includes `validate_ascii_art.py` — an automated checker for common issues. Run it before and after beautifying:
+
+```bash
+python3 validate_ascii_art.py file.md              # check
+python3 validate_ascii_art.py file.md --fix         # auto-fix line widths
+python3 validate_ascii_art.py file.md --block 2     # check only block #2
+python3 validate_ascii_art.py file.md --verbose      # show detected boxes
+```
+
+**What it checks:** line widths, box border consistency, vertical border continuity, content padding, symmetry.
+
+**Expected warnings:** "Vertical border gap" between separate boxes in a chain (e.g., box → connector → box) is normal and not an error.
+
+**Limitation:** Only detects Unicode box-drawing characters (`┌ ─ │`). Blocks using `+--+` ASCII style won't be detected until converted to Unicode.
+
 ## Quality Checklist
 
 After beautifying each block, mentally verify:
@@ -154,3 +198,4 @@ After beautifying each block, mentally verify:
 2. **Annotation overflow**: Long annotations like `#FF6B35 рамка` can push borders. Keep annotations within the box width or move them to a separate line.
 3. **Nested depth**: Deeply nested boxes accumulate indent. Plan the total width before drawing.
 4. **Mixed content**: Some boxes have 1 line of text, others have 3. All boxes at the same level should have consistent height when they're in the same visual row.
+5. **Trailing spaces**: Connection lines (`│`) and connector rows between boxes are often shorter than the widest line. The Edit tool silently strips trailing spaces, making these lines shorter. Always verify line widths after editing.
