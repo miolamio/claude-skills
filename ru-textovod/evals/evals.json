@@ -1,0 +1,50 @@
+{
+  "skill_name": "ru-textovod",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Проверь текст: Мы прийдём завтра на встречу чтобы обсудить новые предложения",
+      "expected_output": "Autocorrection via API v2: corrected text with grammar and punctuation fixes, detailed mode showing errors",
+      "files": [],
+      "expectations": [
+        "The agent checks for TEXTOVOD_API2_TOKEN env var before making API calls",
+        "The agent uses curl to call the Textovod API v2 grammar endpoint",
+        "The agent uses jq -n --arg to safely build JSON body (not string interpolation)",
+        "The agent does NOT send an 'id' field in the v2 submit request body",
+        "The agent polls the result endpoint after submitting",
+        "The output shows the corrected text with 'прийдём' fixed",
+        "The output shows the comma added before 'чтобы'",
+        "The output uses detailed mode format with error list and corrected text"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Проверь орфографию: Он расчитывал на лутшее но получилось совсем подругому",
+      "expected_output": "Spelling check via API v1: list of misspelled words with suggestions, using spelling endpoint",
+      "files": [],
+      "expectations": [
+        "The agent checks for TEXTOVOD_USER_ID and TEXTOVOD_API_KEY env vars",
+        "The agent uses the v1 spelling endpoint (spelling/user/add), not v2 grammar",
+        "The agent uses jq -n --arg to safely build JSON body",
+        "The agent correctly parses the result field as a JSON string (using fromjson or equivalent)",
+        "The output identifies 'расчитывал' as a spelling error",
+        "The output identifies 'лутшее' as a spelling error",
+        "The output uses detailed mode showing individual errors with suggestions"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Просто исправь: В этом тексте есть нескольно ошибок которые нужно исправить чтобы он выглядил нормально",
+      "expected_output": "Quick mode autocorrection: just the corrected text with error count, no detailed error list",
+      "files": [],
+      "expectations": [
+        "The agent uses API v2 grammar (autocorrection) as default",
+        "The agent recognizes 'просто исправь' as quick mode trigger",
+        "The output uses quick mode format: error count + corrected text only",
+        "The output does NOT show a detailed error list (no numbered error items)",
+        "The corrected text fixes 'нескольно' to 'несколько'",
+        "The corrected text fixes 'выглядил' to 'выглядел'"
+      ]
+    }
+  ]
+}
