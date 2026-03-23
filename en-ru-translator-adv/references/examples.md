@@ -302,3 +302,47 @@ Good (System 2 — semicolons, period at end):
 - **scripts/** (необязательно) — исполняемый код;
 - **assets/** (необязательно) — шаблоны, шрифты, иконки.
 ```
+
+---
+
+## Exam / Certification Questions
+
+### Example 1: Hanging question + missing terminology
+
+English: "What provides the strongest guarantee?"
+
+Bad: "Где самая сильная гарантия?"
+
+Good: "Какой подход надёжнее всего обеспечит соблюдение лимита?"
+
+What went wrong: Hanging question ("guarantee of what?"). The question must be self-sufficient — the reader must understand what is guaranteed from the question text alone.
+
+### Example 2: Colloquial register + calque of "enforcement"
+
+English: "Hooks provide deterministic enforcement of business rules. Prompts provide probabilistic compliance only."
+
+Bad: "Программное принуждение даёт детерминированные гарантии. Промпты дают лишь вероятностное соблюдение."
+
+Good: "Программный контроль порядка вызовов даёт детерминированные гарантии, недостижимые при промпт-подходах. Промпты дают лишь вероятностное соблюдение правил."
+
+What went wrong: "принуждение" is a calque of "enforcement" — use "контроль соблюдения" or "обеспечение соблюдения". "Соблюдение" without object is a hanging phrase — add "правил".
+
+### Example 3: Source artifact + vague wording + military vocabulary
+
+English: "During a complex 30-minute codebase investigation, you discover a critical architectural insight about the system's dependency graph."
+
+Bad: "Вопрос 70 (в источнике paullarionov — Q36): за полчаса сложного разбора кодовой базы вы выясняете важную вещь об архитектуре — графе зависимостей."
+
+Good: "За полчаса сложного исследования кодовой базы обнаруживается критически важный архитектурный вывод о графе зависимостей системы."
+
+What went wrong: Source metadata leaked into translation ("Вопрос 70..."). "Важную вещь" is too vague for "critical architectural insight". "Вы выясняете" is a calque of "you discover" — use impersonal form. "Расследование" and "разведку" (in explanation) are military/police vocabulary — use "исследование".
+
+### Example 4: Missing modality + wrong terminology
+
+English: "Your extraction schema includes a `severity` enum. What should you add?"
+
+Bad: "В схеме извлечения для `severity` задано перечисление. Что добавить?"
+
+Good: "Extraction-схема содержит enum `severity` со значениями... Что следует добавить?"
+
+What went wrong: "should" must be preserved as "следует". "Схема извлечения" should be "extraction-схема" per glossary. "Что добавить?" loses the modality of recommendation.

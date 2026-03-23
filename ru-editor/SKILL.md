@@ -10,7 +10,7 @@ description: Edits AI-generated or poorly written Russian text into natural, idi
   editing, or creative writing.
 metadata:
   author: Anthony Vdovitchenko @ Automatica (https://t.me/aiwizards)
-  version: 2.0.0
+  version: 2.1.0
   category: editing
 ---
 
@@ -79,11 +79,17 @@ Read the text as a whole first. Understand its purpose, audience, and register. 
 
 12. **Typography fixes** — correct quotes to «ёлочки», dashes to proper Unicode, list punctuation, letter «ё», number formatting (see `typography.md`).
 
+13. **Word repetition cleanup** — if a word appears 3+ times in one sentence or 2+ times within 15 words, rephrase using synonyms, pronouns, or restructure. Common offenders: «инструмент», «система», «процесс», «данные».
+
+14. **Anthropomorphism fix** — technical objects (файлы, схемы, системы) should use «должен», not «обязан». Reserve «обязан» for people and agents acting in person-like roles.
+
+15. **Redundancy in obvious context** — remove restating what is already clear from context: «в коде проекта» when working in a code editor, «в русском языке» when the entire text is Russian.
+
 Do not aim for perfection at this stage. Aim for clean, natural, readable Russian.
 
 ### Step 2 — Self-Reflection (Самопроверка)
 
-Reread your edit as a READER who has never seen the original. Run these 13 checks:
+Reread your edit as a READER who has never seen the original. Run these 16 checks:
 
 1. **AI vibe check** — would a native speaker write this unprompted? Does anything feel mechanical, overly balanced, or algorithmically structured? If you can't tell human from machine, it's not ready.
 
@@ -111,6 +117,12 @@ Reread your edit as a READER who has never seen the original. Run these 13 check
 
 13. **Paragraph opener scan** — does any paragraph start with a transitional word (во-первых, далее, более того, таким образом, рассмотрим)? Replace with content — main idea or hook.
 
+14. **Word repetition scan** — any word appearing 3+ times in a sentence? Or 2+ times within 15 words? Especially «инструмент», «система», «процесс», «данные». Rephrase with synonyms, pronouns, or restructure.
+
+15. **Anthropomorphism scan** — do technical objects use «обязан/обязаны»? Files, schemas, systems use «должен». «Обязан» is for people.
+
+16. **Contextual redundancy scan** — any phrases that restate what is already obvious from the surrounding context?
+
 Write specific, actionable notes. If all checks pass, proceed to Step 3 without changes.
 
 ### Step 3 — Polish (Финальная правка)
@@ -126,7 +138,7 @@ Apply all findings from Step 2. Then add the human element:
 ### When to Stop
 
 The edit is ready when:
-- All 13 checks from Step 2 pass.
+- All 16 checks from Step 2 pass.
 - The text flows when read aloud.
 - Zero meaning has been lost or distorted.
 - No mechanical repetition remains.

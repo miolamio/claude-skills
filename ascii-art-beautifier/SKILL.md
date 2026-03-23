@@ -7,7 +7,7 @@ description: Beautifies and generates ASCII art diagrams in markdown files. Use 
   new clean ASCII art from text descriptions when asked.
 metadata:
   author: Anthony Vdovitchenko @ Automatica
-  version: 1.1.0
+  version: 1.2.0
   category: editing
 ---
 
@@ -40,16 +40,43 @@ If the user has already made their intent clear (e.g., "fix the ascii art in thi
 1. **Read** the target file completely.
 2. **Identify** all fenced code blocks that contain box-drawing characters (`┌ ─ ┐ │ └ ┘` or `+--+` style).
 3. **Analyze** each block: map out the grid structure, identify boxes, connections, labels, and annotations.
-4. **Redraw** each block following the Alignment Rules below.
-5. **Write** the corrected blocks back. IMPORTANT: the Edit and Write tools strip trailing spaces, which breaks uniform line width. When a diagram has lines that need trailing spaces (e.g., connection lines shorter than the outer frame), write the file using Python:
+4. **Classify** each block's complexity (this determines how you redraw it):
+
+   | Type | What it looks like | Redraw approach |
+   |------|--------------------|-----------------|
+   | Single box | One `┌──┐...└──┘` | Manual redraw (step 5a) |
+   | Chain | Box → connector → box | Manual redraw (step 5a) |
+   | Nested | Box inside box | Programmatic redraw (step 5b) |
+   | Side-by-side | Two+ boxes on the same row inside an outer frame | Programmatic redraw (step 5b) |
+   | Tree/flow | Branching lines with `┌┴┐` | Manual redraw (step 5a), variable width OK |
+   | Annotated | Box with `<-- comment` outside | Manual redraw (step 5a), variable width OK |
+
+   The key distinction: if a diagram has boxes **inside** other boxes, or multiple boxes sharing horizontal space within a frame, the right edges of inner content lines will be shorter than the outer frame. This means every such line needs trailing-space padding to maintain uniform width — and that padding must be mathematically precise. Visual "eyeballing" doesn't work here because a single column off in a nested structure cascades into misaligned `│` characters across every row.
+
+5. **Redraw** each block:
+
+   **5a. Manual redraw** (simple, chain, tree, annotated blocks):
+   Redraw by hand following the Alignment Rules below. For tree/flow diagrams where lines have naturally variable width (branching connectors, annotations), uniform line width is not required — skip the width check.
+
+   **5b. Programmatic redraw** (nested and side-by-side blocks):
+   Nested diagrams require a mathematical approach. Before drawing anything:
+   1. **Fix the total width** W of the outer frame.
+   2. **Define column positions** for every vertical border: outer `│` at col 0 and col W−1, inner `│` at their respective positions (e.g., col 3 and col W−4 for 3-space indent).
+   3. **For side-by-side boxes**: calculate left box range (e.g., cols 3–14) and right box range (e.g., cols 17–W−4), with a uniform gap between them.
+   4. **Generate each line** using the helper functions from the "Programmatic Drawing Helpers" section below. Every content line gets `.ljust()` padding to the exact required width before the closing `│`.
+   5. Assemble the full file content as a string.
+
+   See "Programmatic Drawing Helpers" below for ready-to-use Python functions.
+
+6. **Write** the corrected blocks back. Always write via Python:
    ```python
-   content = "..."  # full file content
    with open(filepath, 'w') as f:
        f.write(content)
    ```
-   When no trailing spaces are needed (all lines end with a visible character like │ or ┘), the Edit tool works fine.
-6. **Validate** by running `python3 validate_ascii_art.py <file>` (located in this skill's directory). Compare error counts before and after. Target: 0 errors. Warnings about "vertical border gap" between separate boxes are expected and OK.
-7. **Report** what was changed: number of blocks processed, summary of fixes.
+   The Edit and Write tools silently strip trailing spaces from lines. For simple boxes where every line ends with a visible character (`│` or `┘`), this doesn't matter. But for any diagram with nested boxes, connection lines, or padded rows, stripped trailing spaces break uniform line width and misalign borders. Since it's hard to predict which diagrams will need trailing spaces, always use Python — it's safe for all cases.
+
+7. **Validate** by running `python3 validate_ascii_art.py <file>` (located in this skill's directory). Compare error counts before and after. Target: 0 errors. Warnings about "vertical border gap" between separate boxes are expected and OK.
+8. **Report** what was changed: number of blocks processed, summary of fixes.
 
 ## Generate Mode — Workflow
 
@@ -162,18 +189,68 @@ RIGHT:
 └──────────┴──────────┴──────┘
 ```
 
+## Programmatic Drawing Helpers
+
+When redrawing nested or side-by-side diagrams (step 5b), use these helper functions to generate lines with precise column alignment. They eliminate manual counting and guarantee uniform width.
+
+```python
+def box_top(width):
+    """Top border: ┌────────┐"""
+    return "┌" + "─" * (width - 2) + "┐"
+
+def box_bottom(width):
+    """Bottom border: └────────┘"""
+    return "└" + "─" * (width - 2) + "┘"
+
+def box_separator(width):
+    """Horizontal separator: ├────────┤"""
+    return "├" + "─" * (width - 2) + "┤"
+
+def box_line(text, width):
+    """Content line: │ text...padded │  (total length = width)"""
+    return "│" + (" " + text).ljust(width - 2) + "│"
+
+def box_empty(width):
+    """Empty content line: │              │"""
+    return "│" + " " * (width - 2) + "│"
+
+def nested_line(inner_content, outer_width, indent=3):
+    """Line inside an outer box with indented content.
+    outer │ at col 0 and col outer_width-1,
+    inner_content starts at col indent."""
+    padded = " " * indent + inner_content
+    return "│" + padded.ljust(outer_width - 2) + "│"
+```
+
+**Usage example** — a box nested inside an outer frame:
+```python
+W = 40  # outer frame width
+lines = []
+lines.append(box_top(W))                           # ┌──────...──┐
+lines.append(nested_line(box_top(W - 6), W))        # │   ┌────...┐   │
+lines.append(nested_line(box_line("Hello", W - 6).strip(), W))
+lines.append(nested_line(box_bottom(W - 6), W))     # │   └────...┘   │
+lines.append(box_bottom(W))                          # └──────...──┘
+```
+
+These are starting points — adapt them for your specific layout. The key principle: calculate column positions mathematically, then pad every line to exact width with `.ljust()`.
+
 ## Validator
 
 This skill includes `validate_ascii_art.py` — an automated checker for common issues. Run it before and after beautifying:
 
 ```bash
-python3 validate_ascii_art.py file.md              # check
-python3 validate_ascii_art.py file.md --fix         # auto-fix line widths
-python3 validate_ascii_art.py file.md --block 2     # check only block #2
-python3 validate_ascii_art.py file.md --verbose      # show detected boxes
+python3 validate_ascii_art.py file.md                  # check all blocks
+python3 validate_ascii_art.py file.md --fix             # auto-fix line widths (pad shorter lines)
+python3 validate_ascii_art.py file.md --fix-nested      # rebuild nested box alignment (detects outer
+                                                        # frame, fixes inner │ positions, writes via Python)
+python3 validate_ascii_art.py file.md --block 2         # check only block #2
+python3 validate_ascii_art.py file.md --verbose          # show detected boxes and nesting structure
 ```
 
-**What it checks:** line widths, box border consistency, vertical border continuity, content padding, symmetry.
+**What it checks:** line widths, box border consistency, vertical border continuity, content padding, symmetry, nesting structure.
+
+**`--fix` vs `--fix-nested`:** `--fix` only pads lines with trailing spaces to uniform width. `--fix-nested` goes further: it detects the outer box boundaries, identifies positions of all inner vertical borders, and rebuilds each line with correct `│` placement and padding. Use `--fix-nested` when the validator reports errors on inner box borders in nested diagrams.
 
 **Expected warnings:** "Vertical border gap" between separate boxes in a chain (e.g., box → connector → box) is normal and not an error.
 
@@ -196,6 +273,7 @@ After beautifying each block, mentally verify:
 
 1. **Cyrillic label length**: "КОМПЬЮТЕР" (9 chars) vs "CLAUDE CODE" (11 chars). When these must be in symmetric boxes, pad the shorter label with spaces.
 2. **Annotation overflow**: Long annotations like `#FF6B35 рамка` can push borders. Keep annotations within the box width or move them to a separate line.
-3. **Nested depth**: Deeply nested boxes accumulate indent. Plan the total width before drawing.
+3. **Nested boxes need programmatic approach**: Visually aligning nested boxes by hand almost always fails. The inner content lines are shorter than the outer frame, so every line needs precise trailing-space padding. A single miscount cascades into visible `│` misalignment. Always use step 5b (programmatic redraw) for nested structures.
 4. **Mixed content**: Some boxes have 1 line of text, others have 3. All boxes at the same level should have consistent height when they're in the same visual row.
-5. **Trailing spaces**: Connection lines (`│`) and connector rows between boxes are often shorter than the widest line. The Edit tool silently strips trailing spaces, making these lines shorter. Always verify line widths after editing.
+5. **Always write via Python**: The Edit and Write tools strip trailing spaces. This is invisible and breaks uniform line width. Always use `with open(filepath, 'w')` — it preserves every character exactly as written. This is especially critical for nested boxes where inner content lines are shorter than the outer frame.
+6. **Plan total width first**: Deeply nested boxes accumulate indent. Before drawing, calculate the total width W needed to fit all nesting levels with readable content. Working from the inside out (minimum inner content width → add padding → add borders → add outer padding → outer frame) prevents surprises.

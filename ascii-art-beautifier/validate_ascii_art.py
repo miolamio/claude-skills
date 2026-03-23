@@ -344,7 +344,93 @@ def fix_line_widths(lines: list[str]) -> list[str]:
     return [l + ' ' * (max_w - len(l)) for l in lines]
 
 
-def validate_file(filepath: str, fix: bool = False, block_num: Optional[int] = None,
+def find_nesting(boxes: list[Box]) -> dict[int, list[int]]:
+    """Find which boxes are nested inside which.
+    Returns {parent_index: [child_indices]}."""
+    nesting = {}
+    for i, outer in enumerate(boxes):
+        children = []
+        for j, inner in enumerate(boxes):
+            if i == j:
+                continue
+            if (inner.top_row > outer.top_row and inner.bot_row < outer.bot_row
+                    and inner.left_col > outer.left_col and inner.right_col < outer.right_col):
+                children.append(j)
+        if children:
+            nesting[i] = children
+    return nesting
+
+
+def fix_nested_boxes(lines: list[str]) -> list[str]:
+    """Rebuild lines in nested box structures to ensure correct │ placement.
+
+    For each outer box that contains inner boxes:
+    1. Determines the outer width from the outer box
+    2. For each content line, strips existing outer borders, pads inner content
+       to exact width, and re-wraps with outer borders at correct columns.
+    """
+    boxes = detect_boxes(lines)
+    if not boxes:
+        return lines
+
+    nesting = find_nesting(boxes)
+    if not nesting:
+        # No nesting detected — just fix line widths
+        return fix_line_widths(lines)
+
+    result = list(lines)
+
+    for parent_idx, child_indices in nesting.items():
+        outer = boxes[parent_idx]
+        outer_w = outer.width
+        target_len = outer.left_col + outer_w  # total line length including any prefix
+
+        # Rebuild each content line within the outer box
+        for row in range(outer.top_row + 1, outer.bot_row):
+            if row >= len(result):
+                continue
+
+            line = result[row]
+
+            # If line is already the correct total length, skip
+            if len(line) == target_len:
+                continue
+
+            # Determine left and right border characters
+            left_col = outer.left_col
+            right_col = outer.left_col + outer_w - 1
+
+            left_char = "│"
+            if left_col < len(line) and line[left_col] in VERTICALS | T_JUNCTIONS:
+                left_char = line[left_col]
+
+            # Extract inner content: everything between outer borders.
+            # The existing right │ may be at a wrong position — strip it.
+            inner_start = left_col + 1
+            inner_end = min(len(line), right_col)  # don't go past target right col
+
+            # If the line's last char is a border char at or near the expected right col,
+            # exclude it from content (it will be re-added)
+            raw_inner = line[inner_start:]
+            if raw_inner and raw_inner[-1] in VERTICALS | T_JUNCTIONS:
+                right_char = raw_inner[-1]
+                raw_inner = raw_inner[:-1]
+            else:
+                right_char = "│"
+
+            # Pad inner content to exact width (outer_w - 2 = space between borders)
+            inner_width = outer_w - 2
+            padded_inner = raw_inner.ljust(inner_width)[:inner_width]
+
+            # Reconstruct
+            prefix = line[:left_col] if left_col > 0 else ""
+            result[row] = prefix + left_char + padded_inner + right_char
+
+    return result
+
+
+def validate_file(filepath: str, fix: bool = False, fix_nested: bool = False,
+                  block_num: Optional[int] = None,
                   verbose: bool = False, quiet: bool = False) -> list[Issue]:
     """Validate all ASCII art blocks in a markdown file."""
     with open(filepath) as f:
@@ -377,6 +463,15 @@ def validate_file(filepath: str, fix: bool = False, block_num: Optional[int] = N
             print(f"\nDetected {len(boxes)} boxes:")
             for box in boxes:
                 print(f"  {box}")
+            nesting = find_nesting(boxes)
+            if nesting:
+                print(f"\nNesting structure:")
+                for parent_idx, child_indices in nesting.items():
+                    parent = boxes[parent_idx]
+                    children = [boxes[ci] for ci in child_indices]
+                    print(f"  {parent} contains:")
+                    for child in children:
+                        print(f"    {child}")
 
         if not quiet:
             # Line width summary
@@ -405,8 +500,17 @@ def validate_file(filepath: str, fix: bool = False, block_num: Optional[int] = N
 
         all_issues.extend(issues)
 
-        # Auto-fix line widths if requested
-        if fix and any(isinstance(i, Issue) and "Line width" in i.message for i in issues):
+        # Auto-fix: nested box rebuild (includes line width fix)
+        if fix_nested:
+            fixed = fix_nested_boxes(lines)
+            if fixed != lines:
+                old_block = '\n'.join(lines)
+                new_block = '\n'.join(fixed)
+                content = content.replace(old_block, new_block, 1)
+                if not quiet:
+                    print(f"\n✅ Rebuilt nested box alignment (width {max(len(l) for l in fixed)})")
+        # Auto-fix line widths if requested (simpler: just pad)
+        elif fix and any(isinstance(i, Issue) and "Line width" in i.message for i in issues):
             fixed = fix_line_widths(lines)
             # Replace in content
             old_block = '\n'.join(lines)
@@ -415,7 +519,7 @@ def validate_file(filepath: str, fix: bool = False, block_num: Optional[int] = N
             if not quiet:
                 print(f"\n✅ Fixed line widths (padded to {max(len(l) for l in fixed)})")
 
-    if fix:
+    if fix or fix_nested:
         with open(filepath, 'w') as f:
             f.write(content)
         if not quiet:
@@ -438,11 +542,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Validate ASCII art in markdown files")
     parser.add_argument("file", help="Markdown file to validate")
     parser.add_argument("--fix", action="store_true", help="Auto-fix line width issues")
+    parser.add_argument("--fix-nested", action="store_true", help="Rebuild nested box alignment (fixes inner border positions)")
     parser.add_argument("--block", type=int, help="Only process block N (1-indexed)")
     parser.add_argument("--verbose", action="store_true", help="Show detailed box analysis")
     parser.add_argument("--quiet", "-q", action="store_true", help="Only print summary line")
     args = parser.parse_args()
 
-    issues = validate_file(args.file, fix=args.fix, block_num=args.block, verbose=args.verbose,
-                           quiet=args.quiet)
+    issues = validate_file(args.file, fix=args.fix, fix_nested=args.fix_nested,
+                           block_num=args.block, verbose=args.verbose, quiet=args.quiet)
     sys.exit(1 if any(i.severity == "error" for i in issues) else 0)

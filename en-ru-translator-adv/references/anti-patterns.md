@@ -410,6 +410,127 @@ Exceptions — preserve established terms without adequate replacement: стар
 | главный приоритет | приоритет |
 | на данный момент времени | сейчас |
 
+## Exam / Test Question Anti-Patterns
+
+### Hanging Questions
+
+A question must be self-sufficient — the reader must understand what is being asked without referring back to the stem.
+
+| Bad (hanging) | Good (self-sufficient) |
+|---------------|----------------------|
+| Что обеспечивает самую сильную гарантию? | Какой подход надёжнее всего обеспечит соблюдение лимита? |
+| Где самая сильная гарантия? | Какой подход надёжнее всего обеспечит соблюдение лимита? |
+| Что делать в первую очередь? | Какой подход будет наиболее эффективным? |
+| Промпты дают лишь вероятностное соблюдение. | Промпты дают лишь вероятностное соблюдение правил. |
+
+### Missing Modality
+
+English "should" MUST be preserved as «следует» in questions:
+
+| Bad | Good |
+|-----|------|
+| Что добавить? | Что следует добавить? |
+| Где разместить файл? | Где следует разместить файл? |
+
+### Source Artifacts
+
+Remove source numbering or metadata that leaked into the translation body:
+
+| Bad | Good |
+|-----|------|
+| Вопрос 70 (в источнике paullarionov — Q36): за полчаса... | За полчаса... |
+
+### Missing Verbs in Answer Options
+
+Each answer option should start with a verb (matching the EN "Add...", "Implement...", "Replace..."):
+
+| Bad | Good |
+|-----|------|
+| C) Хук, который перехватывает... | C) Реализовать хук, перехватывающий... |
+| D) Проверку суммы после... | D) Добавить шаг валидации, который... |
+
+### Colloquial Register in Exam Text
+
+Exam text should maintain professional register. Avoid slang and colloquialisms:
+
+| Bad (colloquial) | Good (professional) |
+|-------------------|---------------------|
+| бьют по деньгам | влекут финансовые потери |
+| съело много контекста | израсходовало значительную часть контекста |
+| бьёт по доверию | подрывает доверие |
+| Завышенный шум | Высокий процент ложных срабатываний |
+
+### Military/Police Vocabulary in Tech Context
+
+| Bad | Good |
+|-----|------|
+| расследование кода | исследование кода |
+| проходить разведку | выполнять исследование / поиск |
+
+### Word Repetition (3+ Rule)
+
+If a word appears 3+ times in a sentence or 2+ times within 15 words, rephrase. Particularly common with «инструмент»:
+
+| Bad | Good |
+|-----|------|
+| Агенты с инструментами за пределами их специализации склонны использовать инструменты неправильно, когда число инструментов растёт | Агенты склонны ошибаться в выборе, когда число доступных инструментов выходит за рамки их специализации |
+
+Strategies: use synonyms (инструмент → вызов/средство), pronouns (он/они/тот), or restructure to avoid the repetition.
+
+### Term Consistency: «конвейер» vs «пайплайн»
+
+| Context | Use | Do NOT use |
+|---------|-----|------------|
+| DevOps / CI/CD | «CI/CD-пайплайн», «пайплайн» | «конвейер» |
+| Data processing, ETL | «конвейер извлечения» | «пайплайн извлечения» |
+| General (pipeline as abstract concept) | «конвейер» acceptable | |
+
+Never mix both forms in a single question.
+
+### «диалог» vs «разговор» (Claude context)
+
+In the context of Claude / LLM sessions, use «диалог» or «контекст», NOT «разговор»:
+
+| Bad | Good |
+|-----|------|
+| основной контекст разговора | основной контекст диалога |
+| в ходе разговора с Claude | в ходе диалога с Claude |
+
+### Канцелярит in Answer Options
+
+Avoid heavy nominalizations in answer options. Keep options action-oriented:
+
+| Bad (bureaucratic) | Good (action-oriented) |
+|--------------------|----------------------|
+| исчерпывающие предварительные инструкции | подробные инструкции заранее |
+| организовать вызов Claude Code | вызвать Claude Code |
+
+### Anthropomorphism
+
+Technical objects should not use «обязан» — reserve it for agents/people:
+
+| Bad | Good |
+|-----|------|
+| файлы обязаны находиться | файлы должны находиться |
+| схема обязана содержать | схема должна содержать |
+
+### Redundancy in Obvious Context
+
+When the work context is already clear (e.g., working in Claude Code), avoid re-stating it:
+
+| Bad | Good |
+|-----|------|
+| нашли корневую причину в коде проекта (при работе в Claude Code) | нашли корневую причину |
+| исследование кода в кодовой базе | исследование кодовой базы |
+
+### Missing Glossary Terms: burden / overhead / safely
+
+| English | Russian | Do NOT use |
+|---------|---------|------------|
+| overhead | накладные расходы | «оверхед» |
+| burden (cognitive/computational) | нагрузка | «бремя» (too literary) |
+| safely (in code context) | безопасно, без побочных эффектов | «в безопасности» |
+
 ## Awkward but Common Constructions
 
 These are not exact calques, but constructions that sound slightly off to a native ear. They often appear in otherwise decent translations.

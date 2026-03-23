@@ -14,7 +14,7 @@ description: Professional English to Russian translation agent with three-step
   language pairs, or grammar correction of existing Russian text.
 metadata:
   author: Anthony Vdovitchenko @ Automatica (https://t.me/aiwizards)
-  version: 3.2.0
+  version: 3.3.0
   category: translation
   based_on: en-ru-translator 2.2.0 + Ilyahov Informational Style + Humanizer
 ---
@@ -53,6 +53,7 @@ Before translating, read the relevant reference files:
 | [references/typography.md](references/typography.md) | Quotation marks, dashes, lists, numbers, dates, mixed-language formatting, list punctuation norms | Read before translating |
 | [references/examples.md](references/examples.md) | Paired examples of bad vs good translations by text type, including technical documentation patterns | Read when translating marketing, educational, or technical texts |
 | [references/glossary-strategy.md](references/glossary-strategy.md) | Terminology consistency rules, glossary template, mixed-language policy | Read when translating long documents or technical texts with domain terminology |
+| [references/exam-question-glossary.md](references/exam-question-glossary.md) | Claude/AI/architecture exam terminology, field mappings, domain-specific terms | Read when translating exam or certification questions about Claude, AI, LLMs |
 
 ## Three-Step Agentic Workflow
 
@@ -86,6 +87,8 @@ Reread your draft as a READER who has never seen the original. Run these checks:
 9. **Variety** — are there monotonous repeated constructions? Same subheading pattern used 5+ times? Same transition phrase? Same sentence opener? If yes, vary them.
 10. **List parallelism** — do all items in every list share the same grammatical form? If a heading asks a question ("Чему вы научитесь?"), are items verbs? If heading is a noun ("Содержание"), are items nouns? No mixing.
 11. **Terminology consistency** — is the same concept always called the same thing? No unintentional synonyms for the same technical term.
+12. **Word repetition (3+ rule)** — does any word appear 3+ times in one sentence or 2+ times within 15 words? If yes, rephrase using synonyms, pronouns, or restructure. Common offender: «инструмент».
+13. **Anthropomorphism** — do technical objects use «обязан»? Reserve it for agents/people; use «должен» for objects (файлы, схемы).
 
 Formulate specific, actionable notes on what to fix. If all checks pass with no issues, proceed to Step 3 without changes.
 
@@ -125,6 +128,7 @@ Detect text type automatically and adjust approach:
 - **Business / corporate** — avoid bureaucratese even in formal texts. Use first person plural where appropriate. Keep sentences short and direct.
 - **Educational** — use conversational, approachable tone. Explain rather than declare. Prefer "we" form over impersonal constructions. Don't use "Глава" in web-doc headings — just numbers or titles.
 - **UI strings** — Russian text is typically 10–20% longer than English. If there is a length constraint, adapt wording to fit; note any truncation trade-offs to the user.
+- **Exam / certification questions** — maximize brevity and precision. Each question must be self-sufficient (no hanging questions). Preserve English modality ("should" → «следует»). Answer options must start with a verb. Remove source artifacts (numbering, cross-references). Use professional register (no colloquialisms). Read [references/exam-question-glossary.md](references/exam-question-glossary.md) for domain terminology.
 
 ## Mixed-Language Policy
 
